@@ -56,13 +56,17 @@ class DriverScrapper(Scrapper):
         self.url = url
         self.df = None
         self.df_columns = None
+        self.driver = None
         self.system = platform.system()
-
+        self.driver_class = driver_class
         self.driver_path = os.path.abspath("./{}driver_{}".format(driver_class, self.system))
-        if driver_class == 'chrome':
+
+    def launch_driver(self):
+        if self.driver_class == 'chrome':
             self.driver = webdriver.Chrome(self.driver_path)
 
     def get(self, num_pages=50):
+        self.launch_driver()
         self.driver.get(self.url)
         time.sleep(1)
 
@@ -95,6 +99,7 @@ class DriverScrapper(Scrapper):
 
     def get_by_filter(self, carat_input=None, price_input=None,
                       pages_visited=25, scroll_number=30, scroll_pause_time=0.2):
+        self.launch_driver()
 
         if carat_input is None:
             carat_input = [0.8, 1.0]
@@ -160,11 +165,12 @@ class DriverScrapper(Scrapper):
                 diamonds = pd.concat([diamonds, b], ignore_index=True)
 
             self.df = diamonds
+            self.driver.quit()
             return diamonds
 
     def set_filter_by_element_name(self, element_name=None, value=None):
         element = self.driver.find_element_by_name(element_name)
         element.click()
-        element.send_keys(''.format(value))
+        element.send_keys('{}'.format(value))
         element.send_keys(Keys.ENTER)
 
