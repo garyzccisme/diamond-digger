@@ -1,7 +1,7 @@
 import os
 import platform
 import time
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import bs4
 from bs4 import BeautifulSoup
@@ -18,6 +18,7 @@ class BlueNileScrapper:
     Superclass of Scrapper(currently only available for https://www.bluenile.com/diamond-search).
     Will consider for other retailer's scrapper in the future.
     """
+
     def __init__(self, url: str):
         self.url = url
         self.soup = None
@@ -103,6 +104,7 @@ class RequestsBlueNileScrapper(BlueNileScrapper):
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
     }
     """
+
     def __init__(self, url: str = None, headers: Dict = None):
         super().__init__(url)
         self.headers = headers
@@ -126,6 +128,7 @@ class DriverBlueNileScrapper(BlueNileScrapper):
     """
     Child class of BlueNileScrapper engined by selenium.webdriver, can load completed data by controlling web driver.
     """
+
     def __init__(self, url=None, driver_class='chrome'):
         """
         Args:
@@ -137,19 +140,20 @@ class DriverBlueNileScrapper(BlueNileScrapper):
         self.driver_class = driver_class
         # Find correct driver absolute path
         self.driver_path = os.path.abspath("./{}driver_{}".format(driver_class, platform.system()))
+        self.soup_list = []
 
-    def launch_driver(self):
+    def _launch_driver(self):
         if self.driver is None:
             if self.driver_class == 'chrome':
                 self.driver = webdriver.Chrome(self.driver_path)
             self.driver.get(self.url)
             time.sleep(1)
 
-    def quit_driver(self):
+    def _quit_driver(self):
         self.driver.quit()
         self.driver = None
 
-    def scroll(self, scroll_number: int = None, scroll_pause_time: int = None):
+    def _scroll(self, scroll_number: int = None, scroll_pause_time: int = None):
         """
         Scroll down command for driver.
         If scroll_number is given, then do given times of scrolling.
@@ -181,7 +185,8 @@ class DriverBlueNileScrapper(BlueNileScrapper):
                 last_height = new_height
 
     def get(self, carat_input: List = None, price_input: List = None,
-            scroll_number: int = None, scroll_pause_time: int = None) -> pd.DataFrame:
+            scroll_number: int = None, scroll_pause_time: int = None,
+            is_quit: bool = True, return_df: bool = True) -> Union[pd.DataFrame, List]:
         """
         Load DataFrame by setting fixed filters for carat and price.
 
@@ -190,27 +195,29 @@ class DriverBlueNileScrapper(BlueNileScrapper):
             price_input: [Min Price, Max Price]. Shouldn't exceed [261, 1860430].
             scroll_number: The number of scrolling times.
             scroll_pause_time: The pause time (second) for each scrolling.
+            is_quit: If True then quit browser after finish, else keep it.
+            return_df: If True then return final DataFrame, else return records(List).
 
         Returns: pd.DataFrame
 
         """
         if carat_input is None:
-            carat_input = [0.5, 0.8]
+            carat_input = [0.23, 20.98]
         if price_input is None:
-            price_input = [1000, 3000]
+            price_input = [261, 1860430]
 
         # Launch web driver
-        self.launch_driver()
+        self._launch_driver()
 
         # Set filter
-        self.set_filter_by_element_name(element_name='carat-max-input', value=carat_input[1])
-        self.set_filter_by_element_name(element_name='carat-min-input', value=carat_input[0])
+        self._set_filter_by_element_name(element_name='carat-max-input', value=carat_input[1])
+        self._set_filter_by_element_name(element_name='carat-min-input', value=carat_input[0])
 
-        self.set_filter_by_element_name(element_name='price-max-input', value=price_input[1])
-        self.set_filter_by_element_name(element_name='price-min-input', value=price_input[0])
+        self._set_filter_by_element_name(element_name='price-max-input', value=price_input[1])
+        self._set_filter_by_element_name(element_name='price-min-input', value=price_input[0])
 
         # Scroll down
-        self.scroll(scroll_number=scroll_number, scroll_pause_time=scroll_pause_time)
+        self._scroll(scroll_number=scroll_number, scroll_pause_time=scroll_pause_time)
 
         # Scrape
         self.soup = BeautifulSoup(self.driver.page_source, "html.parser")
@@ -218,87 +225,114 @@ class DriverBlueNileScrapper(BlueNileScrapper):
         diamond_list = self.get_record()
         self.df = pd.DataFrame(diamond_list, columns=column_name)
 
-        self.quit_driver()
-        return self.df
+        if is_quit:
+            self._quit_driver()
+        else:
+            self.driver.execute_script("window.scrollTo(0, 0)")
 
-    def get_dynamic(self, carat_cut: int = None, price_cut: int = None,
-                    carat_input: List = None, price_input: List = None,
-                    scroll_number: int = None, scroll_pause_time: int = None) -> pd.DataFrame:
+        if return_df:
+            return self.df
+        else:
+            return diamond_list
+
+    def get_dynamic(self, carat_set: List = None, price_set: List = None,
+                    scroll_number: int = None, scroll_pause_time: int = None,
+                    keep_soup_list: bool = False) -> pd.DataFrame:
         """
         Load DataFrame by setting dynamic filters for carat and price. Used for production.
 
         Args:
-            carat_cut: The number of filter sets for carat.
-            price_cut: The number of filter sets for price.
-            carat_input: [Min Carat, Max Carat], large interval will be uniformly cut into smaller ones.
-            price_input: [Min Price, Max Price], large interval will be uniformly cut into smaller ones.
+            carat_set: [[carat_min_1, carat_max_1], [carat_min_2, carat_max_2], ...], should be ascending.
+            price_set: [[price_min_1, price_max_1], [price_min_2, price_max_2], ...], should be ascending.
             scroll_number: The number of scrolling times.
             scroll_pause_time: The pause time (second) for each scrolling.
+            keep_soup_list: If True then store all pages' soup into self.soup_list, else not.
 
-        Returns: pd.DataFrame
+        Returns: DataFrame
 
         """
-        if carat_input is None:
-            carat_input = [0.5, 0.8]
-        if price_input is None:
-            price_input = [1000, 3000]
-        if carat_cut is None:
-            # Default set 0.1 as single carat interval width
-            carat_cut = int((carat_input[1] - carat_input[0]) / 0.1 + 1)
-        else:
-            carat_cut += 1
-        if price_cut is None:
-            # Default set 100 as single price interval width
-            price_cut = (price_input[1] - price_input[0]) // 500 + 1
-        else:
-            price_cut += 1
+        if carat_set is None:
+            carat_set = [[0.23, 20.98]]
+        if price_set is None:
+            price_set = [[261, 1860430]]
+
+        if len(carat_set) != len(price_set):
+            raise ValueError("carat_set and price_set should have same length!")
 
         # Launch web driver
-        self.launch_driver()
+        self._launch_driver()
 
         # Scrap column name
         self.soup = BeautifulSoup(self.driver.page_source, "html.parser")
         column_name = self.get_column_name()
 
         # Overwrite self.soup, each page's soup will be stored in list
-        self.soup = []
-        total_record = []
+        diamond_list = []
 
-        # Split carat input into multiple sets
-        carats = np.around(np.linspace(*carat_input, carat_cut), decimals=2)
-        min_carat = carats[:-1]
-        max_carat = np.append(carats[1:-1] - 0.01, carats[-1])
+        pages = len(carat_set)
+        for page in range(pages):
+            carat_filter = carat_set[page]
+            price_filter = price_set[page]
 
-        # Split price input into multiple sets
-        prices = np.around(np.linspace(*price_input, price_cut), decimals=0)
-        min_price = prices[:-1]
-        max_price = np.append(prices[1:-1] - 1, prices[-1])
+            # Input each set of filter into self.get()
+            diamond_list += self.get(carat_input=carat_filter, price_input=price_filter,
+                                     scroll_number=scroll_number, scroll_pause_time=scroll_pause_time,
+                                     is_quit=False, return_df=False)
+            if keep_soup_list:
+                self.soup_list.append(self.soup)
 
-        for carat in range(carat_cut - 1):
+        self.df = pd.DataFrame(diamond_list, columns=column_name)
 
-            # Update carat filter
-            self.set_filter_by_element_name(element_name='carat-max-input', value=max_carat[carat])
-            self.set_filter_by_element_name(element_name='carat-min-input', value=min_carat[carat])
-
-            for price in range(price_cut - 1):
-
-                # Update price filter
-                self.set_filter_by_element_name(element_name='price-max-input', value=max_price[price])
-                self.set_filter_by_element_name(element_name='price-min-input', value=min_price[price])
-
-                # Scroll down
-                self.scroll(scroll_number=scroll_number, scroll_pause_time=scroll_pause_time)
-                # Scrape records data
-                soup = BeautifulSoup(self.driver.page_source, "html.parser")
-                self.soup.append(soup)
-                total_record += self.get_record(soup=soup)
-
-        self.df = pd.DataFrame(total_record, columns=column_name)
-
-        self.quit_driver()
+        self._quit_driver()
         return self.df
 
-    def set_filter_by_element_name(self, element_name: str = None, value: float = None, click_pause_time: int = 1):
+    def diamond_distribution_research(self, carat_set: List = None, price_set: List = None) -> pd.DataFrame:
+        """
+        This method is used to count total diamonds number given by specific filter set.
+        Is usually used for diamond distribution research.
+        Args:
+            carat_set: [[carat_min_1, carat_max_1], [carat_min_2, carat_max_2], ...], should be ascending.
+            price_set: [[price_min_1, price_max_1], [price_min_2, price_max_2], ...], should be ascending.
+
+        Returns: DataFrame | carat_filter | price_filter | count |
+
+        """
+        if carat_set is None:
+            carat_set = [[0.23, 20.98]]
+        if price_set is None:
+            price_set = [[261, 1860430]]
+
+        if len(carat_set) != len(price_set):
+            raise ValueError("carat_set and price_set should have same length!")
+
+        # Launch web driver
+        self._launch_driver()
+        all_diamonds_list = []
+
+        pages = len(carat_set)
+        for page in range(pages):
+            carat_filter = carat_set[page]
+            price_filter = price_set[page]
+
+            # Set filter
+            self._set_filter_by_element_name(element_name='carat-max-input', value=carat_filter[1])
+            self._set_filter_by_element_name(element_name='carat-min-input', value=carat_filter[0])
+
+            self._set_filter_by_element_name(element_name='price-max-input', value=price_filter[1])
+            self._set_filter_by_element_name(element_name='price-min-input', value=price_filter[0])
+
+            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            all_diamonds = soup.find_all(
+                'div', class_='navigation-tabs sticky filter-tooltip-cta')[0].get_text(';').split(';')[2]
+            all_diamonds_list.append(int(all_diamonds.replace(',', '')))
+
+        self._quit_driver()
+        distribution_df = pd.DataFrame(np.array([carat_set, price_set, all_diamonds_list]).T,
+                                       columns=['carat', 'price', 'count'])
+
+        return distribution_df
+
+    def _set_filter_by_element_name(self, element_name: str = None, value: float = None, click_pause_time: int = 1):
         """
         Helper function to find and set specific filter.
 
@@ -316,6 +350,7 @@ class DriverBlueNileScrapper(BlueNileScrapper):
             element.click()
             time.sleep(click_pause_time)
             element.send_keys('{}'.format(value))
+
         except StaleElementReferenceException:
             element = self.driver.find_element_by_name(element_name)
             time.sleep(click_pause_time)
@@ -325,4 +360,3 @@ class DriverBlueNileScrapper(BlueNileScrapper):
 
         element.send_keys(Keys.ENTER)
         time.sleep(click_pause_time)
-
