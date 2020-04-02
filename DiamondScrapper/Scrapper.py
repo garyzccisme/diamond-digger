@@ -37,7 +37,7 @@ class BlueNileScrapper:
             class_name: The HTML class name containing column names, always use the default one.
 
         Returns: column name list
-        ['Shape', 'Price', 'Discount_Price', 'Carat', 'Cut', 'Color', 'Clarity', 'Polish', 'Symmetry',
+        ['Shape', 'Price', 'Discount Price', 'Carat', 'Cut', 'Color', 'Clarity', 'Polish', 'Symmetry',
          'Fluorescence', 'Depth', 'Table', 'L/W', 'Price/Ct', 'Culet', 'Stock No.', 'Delivery Date']
 
         """
@@ -47,8 +47,8 @@ class BlueNileScrapper:
         column_name = soup.find_all('div', class_=class_name)[0].get_text(';').split(";")
         # column_name[0] is 'Wish List'
         del column_name[0]
-        # Insert new column 'Discount_Price'
-        column_name.insert(2, 'Discount_Price')
+        # Insert new column 'Discount Price'
+        column_name.insert(2, 'Discount Price')
         return column_name
 
     def get_record(self, soup: BeautifulSoup = None, class_name: str = 'grid-row row TL511DiaStrikePrice') -> List:
@@ -249,7 +249,7 @@ class DriverBlueNileScrapper(BlueNileScrapper):
             carat_cut += 1
         if price_cut is None:
             # Default set 100 as single price interval width
-            price_cut = (price_input[1] - price_input[0]) // 100 + 1
+            price_cut = (price_input[1] - price_input[0]) // 500 + 1
         else:
             price_cut += 1
 
@@ -265,12 +265,12 @@ class DriverBlueNileScrapper(BlueNileScrapper):
         total_record = []
 
         # Split carat input into multiple sets
-        carats = np.linspace(*carat_input, carat_cut)
+        carats = np.around(np.linspace(*carat_input, carat_cut), decimals=2)
         min_carat = carats[:-1]
         max_carat = np.append(carats[1:-1] - 0.01, carats[-1])
 
         # Split price input into multiple sets
-        prices = np.linspace(*price_input, price_cut)
+        prices = np.around(np.linspace(*price_input, price_cut), decimals=0)
         min_price = prices[:-1]
         max_price = np.append(prices[1:-1] - 1, prices[-1])
 
@@ -312,11 +312,15 @@ class DriverBlueNileScrapper(BlueNileScrapper):
         # https://stackoverflow.com/questions/27003423/staleelementreferenceexception-on-python-selenium
         try:
             element = self.driver.find_element_by_name(element_name)
+            time.sleep(click_pause_time)
             element.click()
+            time.sleep(click_pause_time)
             element.send_keys('{}'.format(value))
         except StaleElementReferenceException:
             element = self.driver.find_element_by_name(element_name)
+            time.sleep(click_pause_time)
             element.click()
+            time.sleep(click_pause_time)
             element.send_keys('{}'.format(value))
 
         element.send_keys(Keys.ENTER)
