@@ -8,21 +8,23 @@ import pandas as pd
 
 from DiamondScrapper.Scrapper import DriverBlueNileScrapper
 
-logging.basicConfig(filename='log.txt', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
+logging.basicConfig(filename='./Data/log.txt', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 def auto_scrape_pipline(driver_class='chrome', url='https://www.bluenile.com/diamond-search',
                         carat_set: List = None, price_set: List = None,
                         save_single_pkl: bool = True, set_name: str = None):
     logging.info('\n')
-    logging.info('=============== Start Scrapping ===============')
-    logging.info('Filter Condition: carat_input={}, price_input={}'.format(carat_range, price_range))
+    logging.info('================ Start Scrapping ===============')
 
     today = date.today()
     scrapper = DriverBlueNileScrapper(url=url, driver_class=driver_class)
     df = scrapper.get_dynamic(carat_set=carat_set, price_set=price_set)
 
     logging.info('===== Finish Scrapping =====')
+
+    # Drop Duplicates
+    df.drop_duplicates(inplace=True)
 
     # Transform DataFrame
     df = transformation(df)
@@ -43,13 +45,13 @@ def auto_scrape_pipline(driver_class='chrome', url='https://www.bluenile.com/dia
     # Update DataFrame to main DataFrame
     logging.info('===== Start update =====')
 
-    if os.path.isfile('blue_niles_df.pkl'):
+    if os.path.isfile('./Data/blue_niles_df.pkl'):
         update(df)
     else:
-        save_pkl(df, 'blue_niles_df.pkl')
+        save_pkl(df, './Data/blue_niles_df.pkl')
 
     logging.info('===== Finish update and save =====')
-    logging.info('=============== Finish ===============')
+    logging.info('==================== Finish ====================')
 
 
 def save_pkl(df, path=None):
@@ -92,16 +94,14 @@ def update(df, main_df_path='./Data/blue_niles_df.pkl', is_save=True):
     main_df = pd.read_pickle(main_df_path)
 
     # Update values for existing records
+    update_column = ['Price', 'Discount Price', 'Price/Ct', 'Delivery Date', 'Last Available Date']
 
-    # print(main_df.head())
-    # print('========')
-    # print(df.head())
-
-    main_df.update(df)
-    logging.info('===== {} records updated ====='.format(len(set(df.index) & set(main_df))))
+    existing_index = set(df.index) & set(main_df.index)
+    main_df.loc[existing_index, update_column] = df.loc[existing_index, update_column]
+    logging.info('===== {} records updated ====='.format(len(existing_index)))
 
     # Add new records
-    new_records = df[df.index.isin(set(df.index) - set(main_df))]
+    new_records = df[~df.index.isin(existing_index)]
     main_df = pd.concat([main_df, new_records])
     logging.info('===== {} new records ====='.format(new_records.shape[0]))
 
@@ -130,16 +130,13 @@ carat_range = {
 }
 
 price_range = {
-    'price_range_05_052': [[261, 780], [781, 850], [841, 900], [901, 950], [951, 990], [991, 1030], [1031, 1065],
-                           [1066, 1100],
-                           [1101, 1130], [1131, 1165], [1166, 1200], [1201, 1245], [1246, 1275], [1276, 1305],
-                           [1306, 1365],
-                           [1366, 1455], [1456, 1580], [1581, 1800], [1801, 1860430]],
+    'price_range_05_052': [[261, 780], [781, 850], [851, 900], [901, 950], [951, 990], [991, 1030], [1031, 1065],
+                           [1066, 1100], [1101, 1130], [1131, 1165], [1166, 1200], [1201, 1245], [1246, 1275],
+                           [1276, 1305], [1306, 1365], [1366, 1455], [1456, 1580], [1581, 1800], [1801, 1860430]],
     'price_range_053_059': [[261, 1150], [1151, 1400], [1401, 1860430], Price, [261, 1350], [1351, 1860430]],
     'price_range_06_099': [[261, 1350], [1351, 1650], [1651, 2000], [2001, 1860430],
                            *[Price] * 2, [261, 1600], [1601, 1850], [1851, 2100], [2101, 2350], [2351, 2900],
-                           [2901, 1860430],
-                           *[Price] * 3, [261, 2600], [2601, 3300], [3301, 1860430],
+                           [2901, 1860430], *[Price] * 3, [261, 2600], [2601, 3300], [3301, 1860430],
                            Price, [261, 3400], [3401, 4400], [4401, 1860430], Price],
     'price_range_1_101': [[261, 3350], [3351, 3750], [3751, 4050], [4051, 4400], [4401, 4750], [4751, 5100],
                           [5101, 5450], [5451, 5800], [5801, 6300], [6301, 7000], [7001, 1860430]],
@@ -150,16 +147,25 @@ price_range = {
 
 if __name__ == "__main__":
     # Total hard coded filter sets are 6
+    logging.info("\n\n\nToday is {} \n".format(str(date.today())))
     for i in range(6):
         carat_set_name = list(carat_range.keys())[i]
         price_set_name = list(price_range.keys())[i]
-        logging.info('=====Start filter set {}, {}====='.format(carat_set_name, price_set_name))
 
         try:
             auto_scrape_pipline(carat_set=carat_range[carat_set_name], price_set=price_range[price_set_name],
                                 set_name=carat_set_name)
         except:
-            logging.debug('filter set {}, {} BREAK!!!'.format(carat_set_name, price_set_name))
-            continue
+            logging.info('filter set {}, {} BREAK!!!'.format(carat_set_name, price_set_name))
+            logging.info('TRY AGAIN')
+            try:
+                auto_scrape_pipline(carat_set=carat_range[carat_set_name], price_set=price_range[price_set_name],
+                                    set_name=carat_set_name)
+            except:
+                logging.info('filter set {}, {} BREAK AGAIN!!!'.format(carat_set_name, price_set_name))
+                continue
+
+        logging.info('=====Finish filter set {}, {}====='.format(carat_set_name, price_set_name))
+
 
 
