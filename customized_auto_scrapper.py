@@ -1,7 +1,7 @@
-from datetime import date
-from datetime import datetime
 import logging
 import os
+from datetime import date
+from datetime import datetime
 from typing import List
 
 import pandas as pd
@@ -33,7 +33,7 @@ def auto_scrape_pipline(driver_class='chrome', url='https://www.bluenile.com/dia
 
     # Save today's single df
     if save_single_pkl:
-        save_pkl(df, './Data/blue_niles_df_{}_{}.pkl'.format(today.strftime('%Y_%m_%d'), set_name))
+        save_pkl(df, './Data/{}/blue_niles_df_{}.pkl'.format(today.strftime('%Y_%m_%d'), set_name))
 
     logging.info('===== Finish save =====')
 
@@ -162,8 +162,9 @@ if __name__ == "__main__":
                 auto_scrape_pipline(carat_set=carat_range[carat_set_name], price_set=price_range[price_set_name],
                                     set_name=carat_set_name)
             except:
-                logging.info('filter set {}, {} BREAK AGAIN!!!'.format(carat_set_name, price_set_name))
-                continue
+                logging.info(
+                    'filter set {}, {} BREAK AGAIN!!! REQUIRE MANUAL CHECK!!!'.format(carat_set_name, price_set_name))
+            continue
 
         logging.info('=====Finish filter set {}, {}====='.format(carat_set_name, price_set_name))
 
