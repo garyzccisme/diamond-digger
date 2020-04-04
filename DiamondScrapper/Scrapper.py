@@ -42,15 +42,22 @@ class BlueNileScrapper:
          'Fluorescence', 'Depth', 'Table', 'L/W', 'Price/Ct', 'Culet', 'Stock No.', 'Delivery Date']
 
         """
-        if soup is None:
-            soup = self.soup
+        # For stability, we use hard coded column name here
+        return ['Shape', 'Price', 'Discount Price', 'Carat', 'Cut', 'Color', 'Clarity', 'Polish', 'Symmetry',
+                'Fluorescence', 'Depth', 'Table', 'L/W', 'Price/Ct', 'Culet', 'Stock No.', 'Delivery Date']
 
-        column_name = soup.find_all('div', class_=class_name)[0].get_text(';').split(";")
-        # column_name[0] is 'Wish List'
-        del column_name[0]
-        # Insert new column 'Discount Price'
-        column_name.insert(2, 'Discount Price')
-        return column_name
+        # if soup is None:
+        #     soup = self.soup
+        #
+        # column_name = soup.find_all('div', class_=class_name)[0].get_text(';').split(";")
+        #
+        # # Need Manually Check! Headers will change!
+        # print(column_name)
+        # # column_name[0] is 'Wish List'
+        # del column_name[0]
+        # # Insert new column 'Discount Price'
+        # column_name.insert(2, 'Discount Price')
+        # return column_name
 
     def get_record(self, soup: BeautifulSoup = None, class_name: str = 'grid-row row TL511DiaStrikePrice') -> List:
         """
