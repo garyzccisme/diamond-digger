@@ -33,6 +33,8 @@ def auto_scrape_pipline(driver_class='chrome', url='https://www.bluenile.com/dia
 
     # Save today's single df
     if save_single_pkl:
+        if not os.path.exists('./Data/{}'.format(today.strftime('%Y_%m_%d'))):
+            os.mkdir('./Data/{}'.format(today.strftime('%Y_%m_%d')))
         save_pkl(df, './Data/{}/blue_niles_df_{}.pkl'.format(today.strftime('%Y_%m_%d'), set_name))
 
     logging.info('===== Finish save =====')
