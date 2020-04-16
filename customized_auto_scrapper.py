@@ -6,9 +6,9 @@ from typing import List
 
 import pandas as pd
 
-from DiamondScrapper.Scrapper import DriverBlueNileScrapper
+from scrapper.blue_niles import DriverBlueNileScrapper
 
-logging.basicConfig(filename='./Data/log.txt', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
+logging.basicConfig(filename='data/log.txt', filemode='a', format='%(asctime)s %(message)s', level=logging.INFO)
 
 
 def auto_scrape_pipline(driver_class='chrome', url='https://www.bluenile.com/diamond-search',
@@ -33,9 +33,9 @@ def auto_scrape_pipline(driver_class='chrome', url='https://www.bluenile.com/dia
 
     # Save today's single df
     if save_single_pkl:
-        if not os.path.exists('./Data/{}'.format(today.strftime('%Y_%m_%d'))):
-            os.mkdir('./Data/{}'.format(today.strftime('%Y_%m_%d')))
-        save_pkl(df, './Data/{}/blue_niles_df_{}.pkl'.format(today.strftime('%Y_%m_%d'), set_name))
+        if not os.path.exists('./data/{}'.format(today.strftime('%Y_%m_%d'))):
+            os.mkdir('./data/{}'.format(today.strftime('%Y_%m_%d')))
+        save_pkl(df, './data/{}/blue_niles_df_{}.pkl'.format(today.strftime('%Y_%m_%d'), set_name))
 
     logging.info('===== Finish save =====')
 
@@ -47,10 +47,10 @@ def auto_scrape_pipline(driver_class='chrome', url='https://www.bluenile.com/dia
     # Update DataFrame to main DataFrame
     logging.info('===== Start update =====')
 
-    if os.path.isfile('./Data/blue_niles_df.pkl'):
+    if os.path.isfile('data/blue_niles_df.pkl'):
         update(df)
     else:
-        save_pkl(df, './Data/blue_niles_df.pkl')
+        save_pkl(df, 'data/blue_niles_df.pkl')
 
     logging.info('===== Finish update and save =====')
     logging.info('==================== Finish ====================')
@@ -92,7 +92,7 @@ def find_year(day: str):
         return datetime.strptime(day + ' {}'.format(today.year + 1), '%b %d %Y').date()
 
 
-def update(df, main_df_path='./Data/blue_niles_df.pkl', is_save=True):
+def update(df, main_df_path='./data/blue_niles_df.pkl', is_save=True):
     main_df = pd.read_pickle(main_df_path)
 
     # Update values for existing records
