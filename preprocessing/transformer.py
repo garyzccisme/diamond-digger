@@ -32,8 +32,9 @@ class DateSplitTransformer(BaseEstimator, TransformerMixin):
         return split_date.values
 
 
-class DateDiffTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, former_date, later_date):
+class DateDeltaTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self, delta_type, former_date=None, later_date=None):
+        self.delta_type = delta_type
         self._former_date = former_date
         self._later_date = later_date
 
@@ -41,5 +42,12 @@ class DateDiffTransformer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X, y=None):
-        diff = (X[self._later_date] - X[self._former_date]).apply(lambda x: x.days)
-        return diff.values
+        if self.delta_type == 'deliver_days':
+            delta = (X['Delivery Date'] - X['Last Available Date']).apply(lambda x: x.days)
+        elif self.delta_type == 'in_stock_days':
+            delta = (X['First Available Date'] - X['Last Available Date']).apply(lambda x: x.days)
+        elif self.delta_type == 'customized' and self._former_date and self._later_date:
+            delta = (X[self._later_date] - X[self._former_date]).apply(lambda x: x.days)
+        else:
+            raise ValueError("Invalid input")
+        return delta.values
