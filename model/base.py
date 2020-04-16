@@ -11,7 +11,7 @@ class BaseModel(BaseEstimator):
         self.algo = None
         self.pipeline = None
 
-    def build_preprocessor(self):
+    def build_base_preprocessor(self):
         pass
 
     def load_algo(self):
