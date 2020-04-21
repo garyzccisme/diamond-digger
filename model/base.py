@@ -1,3 +1,5 @@
+from typing import Dict
+
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline, FeatureUnion
 
@@ -5,7 +7,17 @@ from preprocessing.transformer import ColumnSelector, DateDeltaTransformer, Date
 
 
 class BaseModel(BaseEstimator):
-    def __init__(self, preprocessor_params=None, algo_params=None, cv_params=None):
+    """
+    Base Model for all customized model pipelines.
+    # TODO: base attributes & methods need to be more considered.
+    """
+    def __init__(self, preprocessor_params: Dict = None, algo_params: Dict = None, cv_params: Dict = None):
+        """
+        Args:
+            preprocessor_params: Dict, stores all hyper-parameters for pre-processing pipeline.
+            algo_params: Dict, stores all hyper-parameters for algorithm estimator.
+            cv_params: Dict, stores all hyper-parameters for cross validation process.
+        """
         self.preprocessor_params = preprocessor_params
         self.algo_params = algo_params
         self.cv_params = cv_params
@@ -14,7 +26,18 @@ class BaseModel(BaseEstimator):
         self.algo = None
         self.pipeline = None
 
-    def build_base_preprocessor(self, inplace=False):
+    def build_base_preprocessor(self, inplace: bool = False):
+        """
+        Build basic features for all models, other customized features can be added by `build_preprocessor()`.
+        Basic features include Categorical, Numerical, Datetime three main types.
+        The specific columns are determined by self.preprocessor_params.
+
+        Args:
+            inplace: bool, if true then update self.preprocessor, if false then return preprocesser.
+
+        Returns:
+
+        """
         # Categorical Features
         cat_preprocessor = Pipeline([
             ('selector', ColumnSelector(self.preprocessor_params['cat_col'])),
