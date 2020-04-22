@@ -34,12 +34,13 @@ class DateSplitTransformer(BaseEstimator, TransformerMixin):
         if use_dates is None:
             use_dates = ['Year', 'Month', 'Day']
         self._use_dates = use_dates
+        self.split_feature_name = ['{} {}'.format(self._date_type, x) for x in self._use_dates]
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X: pd.DataFrame, y=None):
-        split_date = pd.DataFrame(columns=['{} {}'.format(self._date_type, x) for x in self._use_dates])
+        split_date = pd.DataFrame(columns=self.split_feature_name)
         for spec in self._use_dates:
             exec("split_date['{} {}'] = X['{}'].apply(lambda x: x.{})".format(
                 self._date_type, spec, self._date_type, spec.lower()))
