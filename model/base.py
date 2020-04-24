@@ -15,17 +15,17 @@ class BaseModel(BaseEstimator):
     # TODO: base attributes & methods need to be more considered.
     """
     def __init__(self, preprocessor_params: Dict = None, algo_params: Dict = None,
-                 is_cv: bool = False, cv_params: Dict = None):
+                 cv: str = None, cv_params: Dict = None):
         """
         Args:
             preprocessor_params: Dict, stores all hyper-parameters for pre-processing pipeline.
             algo_params: Dict, stores all hyper-parameters for algorithm estimator.
-            is_cv: Bool, if True then fit model with cv_pipeline, if False then fit model with pipeline.
+            cv: String, can be one of ['GridSearch', 'RandomizedSearch'].
             cv_params: Dict, stores all hyper-parameters for cross validation process.
         """
         self.preprocessor_params = preprocessor_params
         self.algo_params = algo_params
-        self.is_cv = is_cv
+        self.cv = cv
         self.cv_params = cv_params
 
         self.preprocessor = None
@@ -122,6 +122,9 @@ class BaseModel(BaseEstimator):
         }
 
     def build_preprocessor(self):
+        return
+
+    def build_algo(self):
         return
 
     def build_pipeline(self):
