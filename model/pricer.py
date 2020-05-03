@@ -69,7 +69,8 @@ class DiamondPricer(BaseModel):
                     'estimator': self.pipeline,
                     'scoring': None,
                     'cv': None,
-                                 }
+                    'refit': True,
+                }
             # Wait to add more cv pipeline
             if self.cv == 'GridSearch':
                 self.cv_params['param_grid'] = self.algo_params['hyper_params_distribution']
@@ -97,8 +98,20 @@ class DiamondPricer(BaseModel):
         elif self.cv == 'RandomizedSearch':
             self.cv_pipeline = RandomizedSearchCV(**self.cv_params)
 
-    def fit(self, X, y):
-        return
+    def fit(self, X, y, tune=False, **kwargs):
+        if tune:
+            self.cv_fit(X, y)
+        else:
+            self.pipeline.fit(X, y)
+
+    def cv_fit(self, X, y, replace=True, **kwargs):
+        self.cv_pipeline.fit(X, y, **kwargs)
+        if replace:
+            self.pipeline = self.cv_pipeline.best_estimator_
+
+    def predict(self, X):
+        return self.pipeline.predict(X)
+
 
 
 
