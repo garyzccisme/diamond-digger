@@ -57,12 +57,11 @@ class DiamondPricer(BaseModel):
         if self.cv is not None:
             if not self.algo_params.get('hyper_params_distribution'):
                 self.algo_params['hyper_params_distribution'] = {
-                                                                    "n_estimators": [50, 100, 200],
-                                                                    "max_features": ['sqrt', 'auto'],
-                                                                    "min_samples_split": [2, 5, 10],
-                                                                    "min_samples_leaf": [2, 5],
-                                                                    "max_depth": [2, 4, 3, 5],
-                                                                    "bootstrap": [True],
+                                                                    'algo__n_estimators': [50, 100, 200],
+                                                                    'algo__max_features': ['sqrt', 'auto'],
+                                                                    'algo__min_samples_split': [2, 5, 10],
+                                                                    'algo__min_samples_leaf': [2, 5],
+                                                                    'algo__max_depth': [2, 4, 3, 5],
                                                                 }
             if self.cv_params is None:
                 self.cv_params = {
@@ -104,6 +103,7 @@ class DiamondPricer(BaseModel):
         else:
             self.pipeline.fit(X, y)
 
+    # TODO: bug fix
     def cv_fit(self, X, y, replace=True, **kwargs):
         self.cv_pipeline.fit(X, y, **kwargs)
         if replace:
