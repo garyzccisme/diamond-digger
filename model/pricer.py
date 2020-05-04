@@ -97,20 +97,46 @@ class DiamondPricer(BaseModel):
         elif self.cv == 'RandomizedSearch':
             self.cv_pipeline = RandomizedSearchCV(**self.cv_params)
 
-    def fit(self, X, y, tune=False, **kwargs):
+    def fit(self, X, y, tune=False):
+        """
+        Train model, which is to fit self.pipeline.
+        Args:
+            X: iterable, Training data.
+            y: iterable, Training target.
+            tune: bool, if True then run cv_fit first and replace self.pipeline with tuned one.
+
+        Returns: self, this model.
+
+        """
         if tune:
             self.cv_fit(X, y)
         else:
             self.pipeline.fit(X, y)
+        return self
 
-    def cv_fit(self, X, y, replace=True, **kwargs):
-        self.cv_pipeline.fit(X, y, **kwargs)
+    def cv_fit(self, X, y, replace=True):
+        """
+        Hyper-parameters tuning for self.pipeline, which is to fit self.cv_pipeline.
+        Args:
+            X: iterable, Training data.
+            y: iterable, Training target.
+            replace: bool, if True then replace self.pipeline with tuned one.
+
+        """
+        self.cv_pipeline.fit(X, y)
         if replace:
             self.pipeline = self.cv_pipeline.best_estimator_
 
     def predict(self, X):
-        return self.pipeline.predict(X)
+        """
+        Predict with trained model.
+        Args:
+            X: iterable, Testing data.
 
+        Returns: predicted y, array-like.
+
+        """
+        return self.pipeline.predict(X)
 
 
 

@@ -133,10 +133,10 @@ class BaseModel(BaseEstimator):
     def build_cv_pipeline(self):
         return
 
-    def fit(self, X, y, *args, **kwargs):
+    def fit(self, X, y):
         return
 
-    def cv_fit(self, X, y, *args, **kwargs):
+    def cv_fit(self, X, y):
         return
 
     def predict(self, X):
