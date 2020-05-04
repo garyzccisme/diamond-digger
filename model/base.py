@@ -194,14 +194,15 @@ class BaseModel(BaseEstimator):
         return self.metrics
 
     def build_preprocessor(self):
-        return
+        raise NotImplementedError('Need to overwrite in subclass')
 
     def build_algo(self):
-        return
+        raise NotImplementedError('Need to overwrite in subclass')
 
     def build_pipeline(self):
-        return
+        raise NotImplementedError('Need to overwrite in subclass')
 
     def build_cv_pipeline(self):
-        return
+        raise NotImplementedError('Need to overwrite in subclass')
+
 
