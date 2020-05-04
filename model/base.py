@@ -178,7 +178,7 @@ class BaseModel(BaseEstimator):
         Returns: float or Dict
 
         """
-        if not self.prediction or self.prediction.shape != y.shape:
+        if self.prediction is None or self.prediction.shape != y.shape:
             self.predict(X)
 
         if metrics is None:
