@@ -30,20 +30,24 @@ class DateSplitTransformer(BaseEstimator, TransformerMixin):
             date_type: String, must be one of ['First Available Date', 'Last Available Date', 'Delivery Date'].
             use_dates: List, default ['Year', 'Month', 'Day'].
         """
-        self._date_type = date_type
+        self.date_type = date_type
         if use_dates is None:
             use_dates = ['Year', 'Month', 'Day']
-        self._use_dates = use_dates
-        self.split_feature_name = ['{} {}'.format(self._date_type, x) for x in self._use_dates]
+        self.use_dates = use_dates
+        self.split_feature_name = [self.date_type + ' {}'.format(x) for x in self.use_dates]
 
     def fit(self, X, y=None):
         return self
 
     def transform(self, X: pd.DataFrame, y=None):
         split_date = pd.DataFrame(columns=self.split_feature_name)
-        for spec in self._use_dates:
-            exec("split_date['{} {}'] = X['{}'].apply(lambda x: x.{})".format(
-                self._date_type, spec, self._date_type, spec.lower()))
+        for spec in self.use_dates:
+            if spec == "Year":
+                split_date[self.date_type + ' {}'.format(spec)] = X[self.date_type].apply(lambda x: x.year)
+            elif spec == "Month":
+                split_date[self.date_type + ' {}'.format(spec)] = X[self.date_type].apply(lambda x: x.month)
+            elif spec == "Day":
+                split_date[self.date_type + ' {}'.format(spec)] = X[self.date_type].apply(lambda x: x.day)
         return split_date.values
 
 
@@ -61,8 +65,8 @@ class DateDeltaTransformer(BaseEstimator, TransformerMixin):
                 then must choose one of ['First Available Date', 'Last Available Date', 'Delivery Date'].
         """
         self.delta_type = delta_type
-        self._former_date = former_date
-        self._later_date = later_date
+        self.former_date = former_date
+        self.later_date = later_date
 
     def fit(self, X, y=None):
         return self
@@ -72,8 +76,8 @@ class DateDeltaTransformer(BaseEstimator, TransformerMixin):
             delta = (X['Delivery Date'] - X['Last Available Date']).apply(lambda x: x.days)
         elif self.delta_type == 'in_stock_days':
             delta = (X['Last Available Date'] - X['First Available Date']).apply(lambda x: x.days)
-        elif self.delta_type == 'customized' and self._former_date and self._later_date:
-            delta = (X[self._later_date] - X[self._former_date]).apply(lambda x: x.days)
+        elif self.delta_type == 'customized' and self.former_date and self.later_date:
+            delta = (X[self.later_date] - X[self.former_date]).apply(lambda x: x.days)
         else:
             raise ValueError("Invalid input")
         # Reshape 1-D array to 2-D array so that can be merged in FeatureUnion() with other features.

@@ -103,7 +103,6 @@ class DiamondPricer(BaseModel):
         else:
             self.pipeline.fit(X, y)
 
-    # TODO: bug fix
     def cv_fit(self, X, y, replace=True, **kwargs):
         self.cv_pipeline.fit(X, y, **kwargs)
         if replace:
