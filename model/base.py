@@ -1,7 +1,8 @@
-from typing import Dict
+from typing import Iterable, Dict, Optional
 
 from sklearn.base import BaseEstimator
 from sklearn.impute import SimpleImputer
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
@@ -33,6 +34,9 @@ class BaseModel(BaseEstimator):
         self.algo = None
         self.pipeline = None
         self.cv_pipeline = None
+
+        self.prediction = None
+        self.metrics = {}
 
     def build_base_preprocessor(self, inplace: bool = False):
         """
@@ -121,6 +125,74 @@ class BaseModel(BaseEstimator):
             'date_delta': ['deliver_days', 'in_stock_days'],
         }
 
+    def fit(self, X, y, tune=False):
+        """
+        Train model, which is to fit self.pipeline.
+        Args:
+            X: iterable, Training data.
+            y: iterable, Training target.
+            tune: bool, if True then run cv_fit first and replace self.pipeline with tuned one.
+
+        Returns: self, this model.
+
+        """
+        if tune:
+            self.cv_fit(X, y)
+        else:
+            self.pipeline.fit(X, y)
+        return self
+
+    def cv_fit(self, X, y, replace=True):
+        """
+        Hyper-parameters tuning for self.pipeline, which is to fit self.cv_pipeline.
+        Args:
+            X: iterable, Training data.
+            y: iterable, Training target.
+            replace: bool, if True then replace self.pipeline with tuned one.
+
+        """
+        self.cv_pipeline.fit(X, y)
+        if replace:
+            self.pipeline = self.cv_pipeline.best_estimator_
+
+    def predict(self, X):
+        """
+        Predict with trained model.
+        Args:
+            X: iterable, Testing data.
+
+        Returns: predicted y, array-like.
+
+        """
+        self.prediction = self.pipeline.predict(X)
+        return self.prediction
+
+    def score(self, X, y, metrics: Optional[Iterable] = None):
+        """
+        Get Scores(Metrics) for prediction.
+        Args:
+            X: iterable, Testing data.
+            y: iterable, Training target.
+            metrics: iterable, List of metric names. If None then return self.pipeline default score.
+
+        Returns: float or Dict
+
+        """
+        if not self.prediction or self.prediction.shape != y.shape:
+            self.predict(X)
+
+        if metrics is None:
+            return self.pipeline.score(X, y)
+
+        for metric in metrics:
+            if metric == 'mse':
+                self.metrics['mse'] = mean_squared_error(y_true=y, y_pred=self.prediction)
+            elif metric == 'mae':
+                self.metrics['mae'] = mean_absolute_error(y_true=y, y_pred=self.prediction)
+            elif metric == 'r-square':
+                self.metrics['r-square'] = r2_score(y_true=y, y_pred=self.prediction)
+        return self.metrics
+
     def build_preprocessor(self):
         return
 
@@ -133,11 +205,3 @@ class BaseModel(BaseEstimator):
     def build_cv_pipeline(self):
         return
 
-    def fit(self, X, y):
-        return
-
-    def cv_fit(self, X, y):
-        return
-
-    def predict(self, X):
-        return

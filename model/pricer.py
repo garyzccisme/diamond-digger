@@ -1,8 +1,8 @@
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
+from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
-from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
 
 from preprocessing.imputer import DateImputer
 from model.base import BaseModel
@@ -96,52 +96,6 @@ class DiamondPricer(BaseModel):
             self.cv_pipeline = GridSearchCV(**self.cv_params)
         elif self.cv == 'RandomizedSearch':
             self.cv_pipeline = RandomizedSearchCV(**self.cv_params)
-
-    def fit(self, X, y, tune=False):
-        """
-        Train model, which is to fit self.pipeline.
-        Args:
-            X: iterable, Training data.
-            y: iterable, Training target.
-            tune: bool, if True then run cv_fit first and replace self.pipeline with tuned one.
-
-        Returns: self, this model.
-
-        """
-        if tune:
-            self.cv_fit(X, y)
-        else:
-            self.pipeline.fit(X, y)
-        return self
-
-    def cv_fit(self, X, y, replace=True):
-        """
-        Hyper-parameters tuning for self.pipeline, which is to fit self.cv_pipeline.
-        Args:
-            X: iterable, Training data.
-            y: iterable, Training target.
-            replace: bool, if True then replace self.pipeline with tuned one.
-
-        """
-        self.cv_pipeline.fit(X, y)
-        if replace:
-            self.pipeline = self.cv_pipeline.best_estimator_
-
-    def predict(self, X):
-        """
-        Predict with trained model.
-        Args:
-            X: iterable, Testing data.
-
-        Returns: predicted y, array-like.
-
-        """
-        return self.pipeline.predict(X)
-
-
-
-
-
 
 
 
