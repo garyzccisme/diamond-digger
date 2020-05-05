@@ -1,5 +1,6 @@
 from typing import Iterable, Dict, Optional
 
+import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -96,3 +97,27 @@ def generate_num_preprocessor(columns, imputer_strategy='median', scaler_type='S
     return num_preprocessor, feature_name, tuning_dict
 
 
+def generate_date_preprocessor(split_cols, delta_types, imputer_strategy=None):
+    if imputer_strategy is None:
+        imputer_strategy = {
+            'first_available_date': 'earliest',
+            'last_available_date': 'latest',
+            'deliver_date': 'latest'
+        }
+
+    splitter = [{
+        'prefix': col + 'split', 'transformer': DateSplitTransformer(date_type=col),
+    } for col in split_cols]
+    delta = [{
+        'prefix': delta_type, 'transformer': DateDeltaTransformer(delta_type=delta_type),
+    } for delta_type in delta_types]
+
+    date_feature_union, _ = generate_feature_union(splitter + delta)
+    date_preprocessor = Pipeline([
+            ('selector', ColumnSelector(['First Available Date', 'Last Available Date', 'Delivery Date'])),
+            ('imputer', DateImputer(**imputer_strategy)),
+            ('date_feature', date_feature_union)
+        ])
+    feature_name = np.array([trans['transformer'].split_feature_name for trans in splitter]).flatten().tolist()
+    feature_name += delta_types
+    return date_preprocessor, feature_name

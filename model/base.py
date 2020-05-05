@@ -8,6 +8,8 @@ from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
 from preprocessing.imputer import DateImputer
 from preprocessing.transformer import ColumnSelector, DateDeltaTransformer, DateSplitTransformer
+from preprocessing.utils import generate_cat_preprocessor, generate_date_preprocessor, generate_feature_union, \
+    generate_num_preprocessor
 
 
 class BaseModel(BaseEstimator):
@@ -34,6 +36,7 @@ class BaseModel(BaseEstimator):
         self.algo = None
         self.pipeline = None
         self.cv_pipeline = None
+        self.tuning_params = None
 
         self.prediction = None
         self.metrics = {}
@@ -51,52 +54,29 @@ class BaseModel(BaseEstimator):
 
         """
         # Categorical Features
-        cat_preprocessor = Pipeline([
-            ('selector', ColumnSelector(self.preprocessor_params['cat_col'])),
-            ('imputer', self.preprocessor_params['cat_imputer']),
-            ('encoder', self.preprocessor_params['cat_encoder']),
-        ])
-        self.feature_name += self.preprocessor_params['cat_col']
+        cat_preprocessor, cat_feature_name, cat_tuning_dict = generate_cat_preprocessor(
+            **self.preprocessor_params['cat']
+        )
 
         # Numerical Features
-        num_preprocessor = Pipeline([
-            ('selector', ColumnSelector(self.preprocessor_params['num_col'])),
-            ('imputer', self.preprocessor_params['num_imputer']),
-            ('scaler', self.preprocessor_params['num_scaler'])
-        ])
-        # Add numerical features name
-        self.feature_name += self.preprocessor_params['num_col']
+        num_preprocessor, num_feature_name, num_tuning_dict = generate_num_preprocessor(
+            **self.preprocessor_params['num']
+        )
 
         # Datetime Features
-        # Make datetime splitter
-        splitter = FeatureUnion(transformer_list=[
-            ('{}'.format(x), DateSplitTransformer(x)) for x in self.preprocessor_params['date_splitter']
-        ])
-        self.feature_name += [name for x in splitter.transformer_list for name in x[1].split_feature_name]
-        # Make datetime delta
-        delta = FeatureUnion(transformer_list=[
-            ('{}'.format(x), DateDeltaTransformer(x)) for x in self.preprocessor_params['date_delta']
-        ])
-        self.feature_name += self.preprocessor_params['date_delta']
+        date_preprocessor, date_feature_name = generate_date_preprocessor(**self.preprocessor_params['date'])
 
-        date_feature = FeatureUnion(transformer_list=[
-            ('splitter', splitter),
-            ('delta', delta),
-        ])
-        date_preprocessor = Pipeline([
-            ('selector', ColumnSelector(self.preprocessor_params['date_col'])),
-            ('imputer', self.preprocessor_params['date_imputer']),
-            ('date_feature', date_feature)
-        ])
-
-        # Make total feature union
-        base_preprocessor = FeatureUnion(transformer_list=[
-            ('cat_preprocessor', cat_preprocessor),
-            ('num_preprocessor', num_preprocessor),
-            ('date_preprocessor', date_preprocessor),
-        ])
+        # Make total FeatureUnion
+        transformer_dict_list = [
+            {'prefix': 'CAT', 'transformer': cat_preprocessor, 'tuning_params': cat_tuning_dict},
+            {'prefix': 'NUM', 'transformer': num_preprocessor, 'tuning_params': num_tuning_dict},
+            {'prefix': 'DATE', 'transformer': date_preprocessor},
+        ]
+        base_preprocessor, self.tuning_params = generate_feature_union(transformer_dict_list)
 
         # Unify self.feature_name
+        self.feature_name = cat_feature_name + num_feature_name + date_feature_name
+        print(self.feature_name)
         self.feature_name = [name.lower().replace(' ', '_') for name in self.feature_name]
 
         if inplace:
@@ -112,17 +92,23 @@ class BaseModel(BaseEstimator):
 
         """
         self.preprocessor_params = {
-            'target_col': ['Price'],
-            'cat_col': ['Shape', 'Cut', 'Color', 'Clarity', 'Polish', 'Symmetry', 'Fluorescence', 'Culet'],
-            'cat_encoder': cat_encoder,
-            'cat_imputer': SimpleImputer(strategy='most_frequent'),
-            'num_col': ['Carat', 'Depth', 'Table', 'L/W'],
-            'num_imputer': SimpleImputer(strategy="median"),
-            'num_scaler': StandardScaler(),
-            'date_col': ['First Available Date', 'Last Available Date', 'Delivery Date'],
-            'date_imputer': DateImputer(),
-            'date_splitter': ['First Available Date'],
-            'date_delta': ['deliver_days', 'in_stock_days'],
+            'cat': {
+                'columns': ['Shape', 'Cut', 'Color', 'Clarity', 'Polish', 'Symmetry', 'Fluorescence', 'Culet'],
+                'imputer_strategy': 'most_frequent',
+                'encoder_type': 'Ordinal',
+                'tune_params': None,
+            },
+            'num': {
+                'columns': ['Carat', 'Depth', 'Table', 'L/W'],
+                'imputer_strategy': 'median',
+                'scaler_type': 'Standard',
+                'tune_params': None,
+            },
+            'date': {
+                'split_cols': ['First Available Date'],
+                'delta_types': ['deliver_days', 'in_stock_days'],
+                'imputer_strategy': None,
+            },
         }
 
     def fit(self, X, y, tune=False):
