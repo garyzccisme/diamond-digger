@@ -32,11 +32,11 @@ class BaseModel(BaseEstimator):
         self.cv_params = cv_params
 
         self.preprocessor = None
-        self.feature_name = []
+        self.preprocessor_tuning_params = None
+        self.feature_name = None
         self.algo = None
         self.pipeline = None
         self.cv_pipeline = None
-        self.tuning_params = None
 
         self.prediction = None
         self.metrics = {}
@@ -72,11 +72,10 @@ class BaseModel(BaseEstimator):
             {'prefix': 'NUM', 'transformer': num_preprocessor, 'tuning_params': num_tuning_dict},
             {'prefix': 'DATE', 'transformer': date_preprocessor},
         ]
-        base_preprocessor, self.tuning_params = generate_feature_union(transformer_dict_list)
+        base_preprocessor, self.preprocessor_tuning_params = generate_feature_union(transformer_dict_list)
 
         # Unify self.feature_name
         self.feature_name = cat_feature_name + num_feature_name + date_feature_name
-        print(self.feature_name)
         self.feature_name = [name.lower().replace(' ', '_') for name in self.feature_name]
 
         if inplace:
