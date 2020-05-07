@@ -15,16 +15,25 @@ from preprocessing.utils import generate_cat_preprocessor, generate_date_preproc
 class BaseModel(BaseEstimator):
     """
     Base Model for all customized model pipelines.
-    # TODO: base attributes & methods need to be more considered.
+
     """
     def __init__(self, preprocessor_params: Dict = None, algo_params: Dict = None,
                  cv: str = None, cv_params: Dict = None):
         """
         Args:
             preprocessor_params: Dict, stores all hyper-parameters for pre-processing pipeline.
+                `BaseModel.load_base_preprocessor_params()` gives out a basic format.
             algo_params: Dict, stores all hyper-parameters for algorithm estimator.
-            cv: String, can be one of ['GridSearch', 'RandomizedSearch'].
+                Format: {
+                    'algo': algorithm enum (String),
+                    'params': algorithm parameters (Dict),
+                    'tune_params' (optional): algorithm parameter distribution,
+                    }
+            cv: String, should be one of ['GridSearch', 'RandomizedSearch'].
             cv_params: Dict, stores all hyper-parameters for cross validation process.
+                Note that`tuning params distribution` names differently among CV-Pipelines.
+                It can also be given in `algo_params[tune_params]`, which has priority to overwrite the one in
+                `cv_params` if conflicts. Thus it would better to define in `algo_params`.
         """
         self.preprocessor_params = preprocessor_params
         self.algo_params = algo_params
@@ -40,6 +49,9 @@ class BaseModel(BaseEstimator):
 
         self.prediction = None
         self.metrics = {}
+
+    def initialization(self):
+        raise NotImplementedError('Need to overwrite in subclass')
 
     def load_base_preprocessor_params(self):
         """
