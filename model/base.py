@@ -51,6 +51,9 @@ class BaseModel(BaseEstimator):
         self.metrics = {}
 
     def initialization(self):
+        """
+        This method is supposed to initialize each component for the model.
+        """
         raise NotImplementedError('Need to overwrite in subclass')
 
     def load_base_preprocessor_params(self):
