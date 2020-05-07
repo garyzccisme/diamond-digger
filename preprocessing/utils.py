@@ -75,7 +75,7 @@ def generate_cat_preprocessor(columns, imputer_strategy='most_frequent', encoder
         imputer_strategy: String, `strategy` parameter of SimpleImputer. Default is 'most_frequent'.
         encoder_type: String, if 'Ordinal' then use OrdinalEncoder, if 'OneHot' then use OneHotEncoder.
         tune_params: Dict, tuning parameters dict, the keys should be in ['selector', 'imputer', 'encoder'],
-            which are steps of the Pipeline.
+            which are steps of the Pipeline, i.e. {'imputer': {'strategy': ['most_frequent', 'mean', 'median']}}.
 
     Returns: preprocessor, feature names, tuning hyper-parameters. Pipeline, List, Dict.
 
@@ -106,7 +106,7 @@ def generate_num_preprocessor(columns, imputer_strategy='median', scaler_type='S
         imputer_strategy: String, `strategy` parameter of SimpleImputer. Default is 'median'.
         scaler_type: String, if 'Standard' then use StandardScaler, if 'MinMax' then use MinMaxScaler.
         tune_params: Dict, tuning parameters dict, the keys should be in ['selector', 'imputer', 'scaler'],
-            which are steps of the Pipeline.
+            which are steps of the Pipeline, i.e. {'imputer': {'strategy': ['most_frequent', 'mean', 'median']}}.
 
     Returns: preprocessor, feature names, tuning hyper-parameters. Pipeline, List, Dict.
 
