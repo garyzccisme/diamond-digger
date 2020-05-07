@@ -41,6 +41,31 @@ class BaseModel(BaseEstimator):
         self.prediction = None
         self.metrics = {}
 
+    def load_base_preprocessor_params(self):
+        """
+        Load base preprocessor_params, which would be share for all models.
+
+        """
+        self.preprocessor_params = {
+            'cat': {
+                'columns': ['Shape', 'Cut', 'Color', 'Clarity', 'Polish', 'Symmetry', 'Fluorescence', 'Culet'],
+                'imputer_strategy': 'most_frequent',
+                'encoder_type': 'Ordinal',
+                'tune_params': None,
+            },
+            'num': {
+                'columns': ['Carat', 'Depth', 'Table', 'L/W'],
+                'imputer_strategy': 'median',
+                'scaler_type': 'Standard',
+                'tune_params': None,
+            },
+            'date': {
+                'split_cols': ['First Available Date'],
+                'delta_types': ['deliver_days', 'in_stock_days'],
+                'imputer_strategy': None,
+            },
+        }
+
     def build_base_preprocessor(self, inplace: bool = False):
         """
         Build basic features for all models, other customized features can be added by `build_preprocessor()`.
@@ -82,33 +107,6 @@ class BaseModel(BaseEstimator):
             self.preprocessor = base_preprocessor
         else:
             return base_preprocessor
-
-    def load_base_preprocessor_params(self, cat_encoder):
-        """
-        Load base preprocessor_params, which would be share for all models.
-        Args:
-            cat_encoder: CategoricalEncoder() in sklearn.preprocessing or self designed.
-
-        """
-        self.preprocessor_params = {
-            'cat': {
-                'columns': ['Shape', 'Cut', 'Color', 'Clarity', 'Polish', 'Symmetry', 'Fluorescence', 'Culet'],
-                'imputer_strategy': 'most_frequent',
-                'encoder_type': 'Ordinal',
-                'tune_params': None,
-            },
-            'num': {
-                'columns': ['Carat', 'Depth', 'Table', 'L/W'],
-                'imputer_strategy': 'median',
-                'scaler_type': 'Standard',
-                'tune_params': None,
-            },
-            'date': {
-                'split_cols': ['First Available Date'],
-                'delta_types': ['deliver_days', 'in_stock_days'],
-                'imputer_strategy': None,
-            },
-        }
 
     def fit(self, X, y, tune=False):
         """
