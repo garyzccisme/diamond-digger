@@ -69,6 +69,7 @@ class DiamondPricer(BaseModel):
                     'refit': True,
                     'iid': False,
                     'n_jobs': 10,
+                    'verbose': 5,
                 }
 
             # Check & add hyper-parameters prefix.
