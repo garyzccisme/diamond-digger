@@ -1,11 +1,19 @@
+import logging
+
+import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import GridSearchCV, KFold, RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
-from preprocessing.imputer import DateImputer
 from model.base import BaseModel
+from preprocessing.imputer import DateImputer
+from preprocessing.utils import generate_tuning_dict
+from utils.logger import get_logger
+
+
+LOGGER = get_logger(name="pricer.py", level=logging.INFO)
 
 
 class DiamondPricer(BaseModel):
@@ -14,6 +22,8 @@ class DiamondPricer(BaseModel):
         self.initialization()
 
     def initialization(self):
+
+        LOGGER.info("======== Start Initialization ========")
 
         # Initialize preprocessor
         if self.preprocessor is None:
@@ -57,14 +67,29 @@ class DiamondPricer(BaseModel):
                     'scoring': None,
                     'cv': None,
                     'refit': True,
+                    'iid': False,
+                    'n_jobs': 10,
                 }
-            # Wait to add more cv pipeline
+
+            # Check & add hyper-parameters prefix.
+            algo_prefix = self.pipeline.steps[-1][0]
+            checklist = [name.startswith('{}__'.format(algo_prefix)) for name in self.algo_params['tune_params']]
+            if not any(checklist):
+                self.algo_params['tune_params'] = generate_tuning_dict(
+                    {algo_prefix: self.algo_params['tune_params']}
+                )
+            elif any(checklist) and not all(checklist):
+                raise ValueError("Invalid format of self.algo_params['tune_params'].")
+
+            # Load self.algo_params['tune_params'] into self.cv_params with correct key name.
             if self.cv == 'GridSearch':
                 self.cv_params['param_grid'] = self.algo_params['tune_params']
             elif self.cv == 'RandomizedSearch':
                 self.cv_params['param_distributions'] = self.algo_params['tune_params']
 
             self.build_cv_pipeline()
+
+        LOGGER.info("======== Finish Initialization ========")
 
     def build_preprocessor(self, use_base=True):
         # TODO: add extra feature if use_base=False

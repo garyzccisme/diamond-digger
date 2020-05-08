@@ -1,3 +1,4 @@
+import logging
 from typing import Iterable, Dict, Optional
 
 from sklearn.base import BaseEstimator
@@ -10,6 +11,10 @@ from preprocessing.imputer import DateImputer
 from preprocessing.transformer import ColumnSelector, DateDeltaTransformer, DateSplitTransformer
 from preprocessing.utils import generate_cat_preprocessor, generate_date_preprocessor, generate_feature_union, \
     generate_num_preprocessor
+from utils.logger import get_logger
+
+
+LOGGER = get_logger(name="base.py", level=logging.INFO)
 
 
 class BaseModel(BaseEstimator):
@@ -134,10 +139,15 @@ class BaseModel(BaseEstimator):
         Returns: self, this model.
 
         """
+        LOGGER.info("======== Start Training ========")
+
         if tune:
             self.cv_fit(X, y)
         else:
             self.pipeline.fit(X, y)
+
+        LOGGER.info("======== Finish Training ========")
+
         return self
 
     def cv_fit(self, X, y, replace=True):
@@ -149,9 +159,13 @@ class BaseModel(BaseEstimator):
             replace: bool, if True then replace self.pipeline with tuned one.
 
         """
+        LOGGER.info("======== Start Tuning ========")
+
         self.cv_pipeline.fit(X, y)
         if replace:
             self.pipeline = self.cv_pipeline.best_estimator_
+
+        LOGGER.info("======== Finish Tuning ========")
 
     def predict(self, X):
         """
