@@ -13,3 +13,5 @@ thus the final result may have some bias according to the entire diamond market.
 
 - [Instruction](https://www.jcchouinard.com/python-automation-using-task-scheduler/) to set up auto scrapper for
  Windows users by Task Scheduler
+
+- TBD
